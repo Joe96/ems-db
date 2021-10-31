@@ -1,125 +1,278 @@
 const express = require('express');
-// Import and require mysql2
+const inquirer = require("inquirer");
 const mysql = require('mysql2');
+require("console.table");
 
 const PORT = process.env.PORT || 3001;
 const app = express();
 
-// Express middleware
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
-// Connect to database
-const db = mysql.createConnection(
+const mySqlDB = mysql.createConnection(
   {
     host: 'localhost',
-    // MySQL username,
     user: 'root',
-    // TODO: Add MySQL password here
-    password: '',
-    database: 'movies_db'
+    password: 'root',
+    database: 'conpany_db'
   },
-  console.log(`Connected to the movies_db database.`)
+  console.log(`Connected to the company_db database.`)
 );
 
-// Create a movie
-app.post('/api/new-movie', ({ body }, res) => {
-  const sql = `INSERT INTO movies (movie_name)
-    VALUES (?)`;
-  const params = [body.movie_name];
-  
-  db.query(sql, params, (err, result) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-      return;
-    }
-    res.json({
-      message: 'success',
-      data: body
-    });
+tracker()
+async function tracker() {
+
+  const getUsersChoice = await inquirer.prompt(questions.actions);
+  switch (getUsersChoice.actions) {
+    case 'View employees': 
+      viewAll();
+      break;
+    case 'View roles':
+      viewAllRoles();
+      break;
+    case 'View departments':
+      viewAllDpt(); 
+      break;
+    case 'Add employee': 
+      addEmployee();
+      break;
+    case 'Add role': 
+      addRole();
+      break;
+    case 'Add department':
+      addDpt(); 
+      break;
+    case 'Update employee role':
+      updateRole
+      break;
+    default:
+      mySqlDB.end();
+      break;
+  }
+}
+
+function addEmployee() {
+
+  mySqlDB.query("SELECT * FROM role", function (err, results) {
+      if (err) throw err;
+
+      inquirer.prompt([
+          {
+            type: "input",
+            name: "firstname",
+            message: "Enter employee's first name"
+          },
+          {
+            type: "input",
+            name: "lastname",
+            message: "Enter employee's last name"
+          },
+          {
+            name: "choice",
+            type: "rawlist",
+            choices: function () {
+                var choiceArray = [];
+                for (var i = 0; i < results.length; i++) {
+                    choiceArray.push(results[i].title);
+                }
+
+                return choiceArray;
+            },
+            message: "Enter employee's role"
+          },
+
+          {
+            type: "input",
+            name: "manager",
+            message: "Enter employee's manager?"
+          }
+
+      ]).then(function (res) {
+
+
+        for (var i = 0; i < results.length; i++) {
+            if (results[i].title === res.choice) {
+                res.role_id = results[i].id;
+            }
+        }
+        var query = "INSERT INTO employee SET ?"
+        const VALUES = {
+            first_name: res.firstname,
+            last_name: res.lastname,
+            role_id: res.role_id
+        }
+        mySqlDB.query(query, VALUES, function (err) {
+            if (err) throw err;
+            console.log("Employee Hired");
+            tracker()
+        }
+
+        )
+      }) 
+  })
+
+}
+
+function addRole() {
+  var roleQuery = "SELECT * FROM role;";
+  var departmentQuery = "SELECT * FROM department;";
+
+
+  mySqlDB.query(roleQuery, function (err, roles) {
+      mySqlDB.query(departmentQuery, function (err, departments) {
+
+          if (err) throw err;
+
+          inquirer.prompt([
+
+            {
+              name: "newRole",
+              type: "rawlist",
+              choices: function () {
+                  var arrayOfChoices = [];
+                  for (var i = 0; i < roles.length; i++) {
+                      arrayOfChoices.push(roles[i].title);
+                  }
+
+                  return arrayOfChoices;
+              },
+              message: "Add another position"
+            },
+            {
+              name: "newSalary",
+              type: "input",
+              message: "Add Salary"
+
+            },
+            {
+              name: "choice",
+              type: "rawlist",
+              choices: function ()
+               {
+                var arrayOfChoices = [];
+                for (var i = 0; i < departments.length; i++) {
+                  arrayOfChoices.push(departments[i].name);
+                }
+
+                return arrayOfChoices;
+              },
+              message: "Which department this role belongs to?"
+            },
+
+        ]).then(function (result) {
+
+          for (var i = 0; i < departments.length; i++) {
+            if (departments[i].name === result.choice) {
+              result.department_id = departments[i].id;
+            }
+          }
+
+          var query = "INSERT INTO role SET ?"
+          const VALUES = {
+
+            title: result.newRole,
+            salary: result.newSalary,
+            department_id: result.department_id
+          }
+
+          mySqlDB.query(query, VALUES, function (err) {
+            if (err) throw err;
+            console.table("Role created");
+            tracker()
+          });
+
+        })
+    })
+  })
+}
+
+function viewAll() {
+  mySqlDB.query("SELECT first_name AS FirstName , last_name as LastName , role.title as Role, role.salary AS Salary, department.name AS Department FROM employee INNER JOIN department ON department.id = employee.role_id left JOIN role ON role.id = employee.role_id", function (err, results) {
+      console.table(results);
+      if (err) throw err;
+      tracker()
   });
-});
+}
 
-// Read all movies
-app.get('/api/movies', (req, res) => {
-  const sql = `SELECT id, movie_name AS title FROM movies`;
-  
-  db.query(sql, (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-       return;
-    }
-    res.json({
-      message: 'success',
-      data: rows
-    });
+function viewAllDpt() {
+  mySqlDB.query("SELECT name AS Departments FROM department ", function (err, results) {
+      console.table(results);
+      if (err) throw err;
+      tracker()
   });
-});
+}
 
-// Delete a movie
-app.delete('/api/movie/:id', (req, res) => {
-  const sql = `DELETE FROM movies WHERE id = ?`;
-  const params = [req.params.id];
-  
-  db.query(sql, params, (err, result) => {
-    if (err) {
-      res.statusMessage(400).json({ error: res.message });
-    } else if (!result.affectedRows) {
-      res.json({
-      message: 'Movie not found'
-      });
-    } else {
-      res.json({
-        message: 'deleted',
-        changes: result.affectedRows,
-        id: req.params.id
-      });
-    }
+function viewAllRoles() {
+  mySqlDB.query("Select title as Roles from role ", function (err, results) {
+      console.table(results);
+      if (err) throw err;
+      tracker()
   });
-});
+}
 
-// Read list of all reviews and associated movie name using LEFT JOIN
-app.get('/api/movie-reviews', (req, res) => {
-  const sql = `SELECT movies.movie_name AS movie, reviews.review FROM reviews LEFT JOIN movies ON reviews.movie_id = movies.id ORDER BY movies.movie_name;`;
-  db.query(sql, (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json({
-      message: 'success',
-      data: rows
-    });
-  });
-});
+function updateRole() {
+  var roleQuery = "SELECT * FROM role;";
+  var departmentQuery = "SELECT * FROM department;";
 
-// Update review name
-app.put('/api/review/:id', (req, res) => {
-  const sql = `UPDATE reviews SET review = ? WHERE id = ?`;
-  const params = [req.body.review, req.params.id];
 
-  db.query(sql, params, (err, result) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else if (!result.affectedRows) {
-      res.json({
-        message: 'Movie not found'
-      });
-    } else {
-      res.json({
-        message: 'success',
-        data: req.body,
-        changes: result.affectedRows
-      });
-    }
-  });
-});
+  mySqlDB.query(roleQuery, function (err, roles) {
+      mySqlDB.query(departmentQuery, function (err, departments) {
 
-// Default response for any other request (Not Found)
-app.use((req, res) => {
-  res.status(404).end();
-});
+          if (err) throw err;
+          inquirer.prompt([
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+              {
+                  name: "newRole",
+                  type: "rawlist",
+                  choices: function () {
+                      var arrayOfChoices = [];
+                      for (var i = 0; i < roles.length; i++) {
+                          arrayOfChoices.push(roles[i].title);
+                      }
+
+                      return arrayOfChoices;
+                  },
+                  message: "Which Role would you like to update?"
+              },
+              {
+                  name: "newSalary",
+                  type: "input",
+                  message: "What is the new salary for this role?"
+
+              },
+              {
+                  name: "choice",
+                  type: "rawlist",
+                  choices: function () {
+                      var arrayOfChoices = [];
+                      for (var i = 0; i < departments.length; i++) {
+                          arrayOfChoices.push(departments[i].name);
+                      }
+                      return arrayOfChoices;
+                  },
+                  message: "Which department this role belongs to?"
+              },
+          ]).then(function (result) {
+
+              for (var i = 0; i < departments.length; i++) {
+                  if (departments[i].name === result.choice) {
+                      result.department_id = departments[i].id;
+                  }
+              }
+              var query = "UPDATE role SET title=?,salary= ? WHERE department_id= ?"
+              const VALUES = [
+
+                  { title: result.newRole },
+                  { salary: result.newSalary },
+                  { department_id: result.department_id }
+              ]
+              let query1 = mySqlDB.query(query, VALUES, function (err) {
+                  if (err) throw err;
+                  console.table("Role Successfuly Updated!");
+                  tracker()
+              });
+
+          })
+      })
+  })
+}
