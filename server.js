@@ -33,13 +33,13 @@ const startTracker= () => {
       name: 'options',
       message: 'What would you like to do?',
       choices: [
-        'View All Departments',
-        'View All Roles',
-        'View All Employees',
+        'View Departments',
+        'View Roles',
+        'View Employees',
         'Add Department',
         'Add Role',
         'Add Employee',
-        'Update An Employee Role',
+        'Update Employee Role',
         'Quit'
       ]
     },
@@ -47,31 +47,31 @@ const startTracker= () => {
 
 .then((response) => {
   switch (response.options) {
-    case 'View employees': 
-    viewAll();
+    case 'View Employees': 
+    viewAllEmply();
     break;
 
-    case 'View roles':
+    case 'View Roles':
       viewAllRoles();
       break;
 
-    case 'View departments':
+    case 'View Departments':
       viewAllDpt(); 
       break;
 
-    case 'Add employee': 
+    case 'Add Employee': 
       addEmployee();
       break;
 
-    case 'Add role': 
+    case 'Add Role': 
       addRole();
       break;
 
-    case 'Add department':
+    case 'Add Department':
       addDpt(); 
       break;
 
-    case 'Update employee role':
+    case 'Update Employee Role':
       updateRole
       break;
 
@@ -218,7 +218,7 @@ function addRole() {
   })
 }
 
-function viewAll() {
+function viewAllEmply() {
   mySqlDB.query("SELECT first_name AS FirstName , last_name as LastName , role.title as Role, role.salary AS Salary, department.name AS Department FROM employee INNER JOIN department ON department.id = employee.role_id left JOIN role ON role.id = employee.role_id", function (err, results) {
       console.table(results);
       if (err) throw err;
