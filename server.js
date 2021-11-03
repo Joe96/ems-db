@@ -13,79 +13,111 @@ const mySqlDB = mysql.createConnection(
   {
     host: 'localhost',
     user: 'root',
-    password: 'root',
-    database: 'conpany_db'
+    password: '#sonicSpeed1',
+    database: 'company_db'
   },
   console.log(`Connected to the company_db database.`)
-);
+)
 
-tracker()
-async function tracker() {
+mySqlDB.connect(function (err) {
+  if (err) throw err;
+  console.log("SQL Connected");
+  startTracker();
+});
 
-  const getUsersChoice = await inquirer.prompt(questions.actions);
-  switch (getUsersChoice.actions) {
+
+const startTracker= () => {
+  inquirer.prompt([
+    {
+      type: 'list',
+      name: 'options',
+      message: 'What would you like to do?',
+      choices: [
+        'View All Departments',
+        'View All Roles',
+        'View All Employees',
+        'Add Department',
+        'Add Role',
+        'Add Employee',
+        'Update An Employee Role',
+        'Quit'
+      ]
+    },
+  ])
+
+.then((response) => {
+  switch (response.options) {
     case 'View employees': 
-      viewAll();
-      break;
+    viewAll();
+    break;
+
     case 'View roles':
       viewAllRoles();
       break;
+
     case 'View departments':
       viewAllDpt(); 
       break;
+
     case 'Add employee': 
       addEmployee();
       break;
+
     case 'Add role': 
       addRole();
       break;
+
     case 'Add department':
       addDpt(); 
       break;
+
     case 'Update employee role':
       updateRole
       break;
+
     default:
       mySqlDB.end();
       break;
-  }
+    }
+  })
 }
+
 
 function addEmployee() {
 
   mySqlDB.query("SELECT * FROM role", function (err, results) {
-      if (err) throw err;
+    if (err) throw err;
 
-      inquirer.prompt([
-          {
-            type: "input",
-            name: "firstname",
-            message: "Enter employee's first name"
-          },
-          {
-            type: "input",
-            name: "lastname",
-            message: "Enter employee's last name"
-          },
-          {
-            name: "choice",
-            type: "rawlist",
-            choices: function () {
-                var choiceArray = [];
-                for (var i = 0; i < results.length; i++) {
-                    choiceArray.push(results[i].title);
-                }
+    inquirer.prompt([
+        {
+          type: "input",
+          name: "firstname",
+          message: "Enter employee's first name"
+        },
+        {
+          type: "input",
+          name: "lastname",
+          message: "Enter employee's last name"
+        },
+        {
+          name: "choice",
+          type: "rawlist",
+          choices: function () {
+              var choiceArray = [];
+              for (var i = 0; i < results.length; i++) {
+                choiceArray.push(results[i].title);
+              }
 
-                return choiceArray;
-            },
-            message: "Enter employee's role"
+              return choiceArray;
           },
+          message: "Enter employee's role"
+        },
 
-          {
-            type: "input",
-            name: "manager",
-            message: "Enter employee's manager?"
-          }
+        {
+          type: "input",
+          name: "manager",
+          message: "Enter employee's manager?"
+        }
 
       ]).then(function (res) {
 
